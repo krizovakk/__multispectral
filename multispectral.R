@@ -45,12 +45,19 @@ require(tidyverse)
 
 # datum <- "m20210521"
 # datum <- "v20210521"
-datum <- "v20210609"
+# datum <- "b20210604"
+# datum <- "m20210609"
+# datum <- "v20210609"
+# datum <- "m20210625"
+datum <- "v20210625"
+
 
 if(startsWith(datum, "m")){
   pole <- "male"
   } else if(startsWith(datum, "v")){
     pole <- "velke"
+  } else if(startsWith(datum, "b")){
+    pole <- "bezno"
   } else{
     print("ZEROOO")
   }
@@ -66,6 +73,8 @@ green <- raster(paste0(cesta, "result_Green.tif"))
 blue <- raster(paste0(cesta, "result_Blue.tif"))
 nir <- raster(paste0(cesta, "result_NIR.tif"))
 edge <- raster(paste0(cesta, "result_RedEdge.tif"))
+
+# rgb <- raster(paste0(cesta, "result.tif"))
 
 # check load and crs
 plot(blue)
@@ -156,14 +165,16 @@ zone <- if(pole == "male"){
   st_read("shp/male.shp")       # n = 1920
 } else if (pole == "velke"){
   st_read("shp/velke.shp")      # n = 6137
+} else if (pole == "bezno"){
+  st_read("shp/bezno.shp")      # n = 78
 } else{
   print("ZEROOO")
 }
 
 # plot(zone)
 
-zone <- zone %>% 
-  select(2,3)
+# zone <- zone %>% 
+#   select(2,3)
 
 
 # ZONAL STATISTICS --------------------------------------------------------
@@ -176,7 +187,7 @@ zone <- zone %>%
 # ZONAL STATISTICS WO STACK -----------------------------------------------
 
 
-zs_sr <- raster::extract(sr, zone, fun ='mean', na.rm=TRUE, df=TRUE, weights = TRUE)
+zs_sr <- raster::extract(sr, zone, fun ='mean', na.rm=TRUE, df=TRUE, weights = TRUE) 
 names(zs_sr)[2] <- 'sr'
 zs_sr$ID <- as.numeric(zs_sr$ID)
 
@@ -231,7 +242,7 @@ apply(zs_exr, 2, function(x) any(is.na(x)))
 apply(zs_exgexr, 2, function(x) any(is.na(x)))
 
 
-rm("sr", "ndvi", "gndvi", "savi", "evi", "mcari", "ndre", "exg", "exr", "exgexr")
+# rm("sr", "ndvi", "gndvi", "savi", "evi", "mcari", "ndre", "exg", "exr", "exgexr")
 
 
 # FINAL TABLE -------------------------------------------------------------
@@ -245,4 +256,44 @@ tab_fin  <- join_all(list(zs_sr, zs_ndvi, zs_gndvi,
 
 # *** WR *** WR *** WR ** WR ***
 write.csv(tab_fin, file = paste0("final_tabs/", datum, ".csv"), row.names=FALSE)
-# *** WR *** WR *** WR ** WR ***                
+# *** WR *** WR *** WR ** WR ***     
+
+
+
+# VISUALS -----------------------------------------------------------------
+
+plot(rgb, main = "Selgen - malé parcely")
+
+plot(ndre, axes=FALSE, main = "NDRE") 
+
+
+# ms kanaly all in one
+
+par(mfrow=c(2,2), bty = 'n', mar = c(2, 0, 2, 8))
+plot(blue, axes=FALSE, main = "B")    # legend(x="bottomright")
+plot(green, axes=FALSE, main = "G")
+plot(red, axes=FALSE, main = "R")
+plot(nir, axes=FALSE, main = "NIR")
+
+
+# index all in one
+
+par(mfrow=c(5,2), bty = 'n', mar = c(2, 0, 2, 12))
+plot(sr, axes=FALSE, main = "SR")    
+plot(ndvi, axes=FALSE, main = "NDVI")    
+plot(gndvi, axes=FALSE, main = "GNDVI")    
+plot(savi, axes=FALSE, main = "SAVI")    
+plot(evi, axes=FALSE, main = "EVI")    
+plot(mcari, axes=FALSE, main = "MCARI")    
+plot(ndre, axes=FALSE, main = "NDRE")    
+plot(exg, axes=FALSE, main = "ExG")    
+plot(exr, axes=FALSE, main = "ExR")    
+plot(exgexr, axes=FALSE, main = "ExG-ExR")  
+
+
+# cut by mask
+
+mask(raster, poly_shape)
+
+m_ndre <- mask(ndre, zone)
+plot(m_ndre, main = "Variabilita NDRE indexu pokusných ploch")
