@@ -43,21 +43,27 @@ require(tidyverse)
 
 # VARIANTY ----------------------------------------------------------------
 
-datum <- "20210602"
-# datum <- "20210623"
-# datum <- "20210701"
-# datum <- "20210716"
+# datum <- "m20210521"
+# datum <- "v20210521"
+# datum <- "m20210601"
+datum <- "v20210601"
+# datum <- "b20210604"
+# datum <- "m20210609"
+# datum <- "v20210609"
+# datum <- "m20210625"
+# datum <- "v20210625"
 
 
-# if(startsWith(datum, "m")){
-#   pole <- "male"
-#   } else if(startsWith(datum, "v")){
-#     pole <- "velke"
-#   } else if(startsWith(datum, "b")){
-#     pole <- "bezno"
-#   } else{
-#     print("ZEROOO")
-#   }
+
+if(startsWith(datum, "m")){
+  pole <- "male"
+  } else if(startsWith(datum, "v")){
+    pole <- "velke"
+  } else if(startsWith(datum, "b")){
+    pole <- "bezno"
+  } else{
+    print("ZEROOO")
+  }
     
 
 # LOAD --------------------------------------------------------------------
@@ -65,14 +71,11 @@ datum <- "20210602"
 
 cesta <- paste0("red/", datum,"/") # změnit složku podle data
 
-
-# *** READ *** READ *** READ ** READ ***  
 red <- raster(paste0(cesta, "result_Red.tif"))
 green <- raster(paste0(cesta, "result_Green.tif"))
 blue <- raster(paste0(cesta, "result_Blue.tif"))
 nir <- raster(paste0(cesta, "result_NIR.tif"))
 edge <- raster(paste0(cesta, "result_RedEdge.tif"))
-# *** READ *** READ *** READ ** READ ***
 
 # rgb <- raster(paste0(cesta, "result.tif"))
 
@@ -161,8 +164,20 @@ rm("blue", "edge", "green", "nir", "red")
 
 # ZONE SHP LOAD -----------------------------------------------------------
 
+zone <- if(pole == "male"){
+  st_read("shp/male.shp")       # n = 1920
+} else if (pole == "velke"){
+  st_read("shp/velke.shp")      # n = 6137
+} else if (pole == "bezno"){
+  st_read("shp/bezno.shp")      # n = 78
+} else{
+  print("ZEROOO")
+}
 
-zone <- st_read("shp/17pt_Libeznice_1mBuffer.shp")
+# plot(zone)
+
+zone <- zone %>%
+  select(2,3)
 
 
 # ZONAL STATISTICS --------------------------------------------------------
@@ -248,76 +263,40 @@ write.csv(tab_fin, file = paste0("final_tabs/", datum, ".csv"), row.names=FALSE)
 
 
 
-# EXT DATA -----------------------------------------------------------------
+# VISUALS -----------------------------------------------------------------
 
-# *** READ *** READ *** READ ** READ *** 
-chl <- read.table("ext_data/17pt_lib_chlab_N.csv", sep = ";", header = T)
-tab_fin <- read.table(paste0("final_tabs/", datum, ".csv"), sep = ",", header = T)
-# *** READ *** READ *** READ ** READ *** 
+plot(rgb, main = "Selgen - malé parcely")
 
-# result <- merge(tab_fin, chl)
-
-# install.packages("rgl")
-library(rgl)
+plot(ndre, axes=FALSE, main = "NDRE") 
 
 
-# plot3d( 
-#   x=result$ndvi, y=result$chlab, z=data$N, 
-#   # col = data$color, 
-#   type = 's', 
-#   radius = .1,
-#   xlab="NDVI", ylab="Chlorophyll AB", zlab="N")
-# 
-# 
-# plot3d( 
-#   x=data$`Sepal.Length`, y=data$`Sepal.Width`, z=data$`Petal.Length`, 
-#   col = data$color, 
-#   type = 's', 
-#   radius = .1,
-#   xlab="Sepal Length", ylab="Sepal Width", zlab="Petal Length")
+# ms kanaly all in one
 
-# install.packages("plot3D")
-library("plot3D")
-
-index <- "SR"
-index <- "NDVI"
-index <- "GNDVI"
-index <- "SAVI"
-index <- "EVI"
-index <- "MCARI"
-index <- "NDRE"
-index <- "ExG"
-index <- "ExR"
-index <- "ExG-ExR"
-
-x <- chl$chlab
-y <- chl$N
-z <- tab_fin$sr
-
-fit <- lm(z ~ x + y)
-summary(fit)
-
-grid.lines = 26
-x.pred <- seq(min(x), max(x), length.out = grid.lines)
-y.pred <- seq(min(y), max(y), length.out = grid.lines)
-xy <- expand.grid( x = x.pred, y = y.pred)
-z.pred <- matrix(predict(fit, newdata = xy), 
-                 nrow = grid.lines, ncol = grid.lines)
-
-fitpoints <- predict(fit)
-
-png(filename = paste0("plots/", datum, "_" ,index, ".png"), width = 18, height = 18, units = "cm", res = 300)
-
-scatter3D(x, y, z, 
-          pch = 18,  cex = 3, theta = 25, phi = 5, ticktype = "detailed", cex.lab = 1.5,
-          col = "navyblue", 
-          # col = "forestgreen", 
-          # col = "coral3", 
-          # col = "gold", 
-          xlab = "Chlorophyll A+B", ylab ="N", zlab = paste0(index), # main = paste(z, "~", x.pred, "+", y.pred)
-          surf = list(x = x.pred, y = y.pred, z = z.pred,  
-                      facets = NA,  fit = fitpoints))
-# text(x = 6.5, y = -1.5, paste0(index), srt = 45)
-dev.off()
+par(mfrow=c(2,2), bty = 'n', mar = c(2, 0, 2, 8))
+plot(blue, axes=FALSE, main = "B")    # legend(x="bottomright")
+plot(green, axes=FALSE, main = "G")
+plot(red, axes=FALSE, main = "R")
+plot(nir, axes=FALSE, main = "NIR")
 
 
+# index all in one
+
+par(mfrow=c(5,2), bty = 'n', mar = c(2, 0, 2, 12))
+plot(sr, axes=FALSE, main = "SR")    
+plot(ndvi, axes=FALSE, main = "NDVI")    
+plot(gndvi, axes=FALSE, main = "GNDVI")    
+plot(savi, axes=FALSE, main = "SAVI")    
+plot(evi, axes=FALSE, main = "EVI")    
+plot(mcari, axes=FALSE, main = "MCARI")    
+plot(ndre, axes=FALSE, main = "NDRE")    
+plot(exg, axes=FALSE, main = "ExG")    
+plot(exr, axes=FALSE, main = "ExR")    
+plot(exgexr, axes=FALSE, main = "ExG-ExR")  
+
+
+# cut by mask
+
+mask(raster, poly_shape)
+
+m_ndre <- mask(ndre, zone)
+plot(m_ndre, main = "Variabilita NDRE indexu pokusných ploch")
